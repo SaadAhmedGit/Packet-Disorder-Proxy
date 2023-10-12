@@ -1,7 +1,7 @@
 .PHONY: build
 
 default:
-	@go run ./main.go
+	@go run .
 
 build:
-	@go build -o ./build/main ./main.go
+	@go build -o ./build/main ./main.go ./packet_heap.go
