@@ -8,7 +8,6 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"os"
 	"packet-shuffler/packetHeap"
 )
 
@@ -26,15 +25,18 @@ const (
 
 func clientHandler(client net.Conn) {
 
-	defer log.Printf("Connection closed with %v\n", client.RemoteAddr())
-	defer client.Close()
+	defer func() {
+		client.Close()
+		log.Printf("Connection closed with %v\n", client.RemoteAddr())
+	}()
 
 	client_buf := make([]byte, BUFFER_SIZE)
 
 	// Connect to the server
 	server, err := net.Dial(SERVER_TYPE, SERVER_HOST+":"+SERVER_PORT)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
+		return
 	}
 
 	defer server.Close()
@@ -44,7 +46,8 @@ func clientHandler(client net.Conn) {
 	// Read image dimensions and forward them to the server
 	n, err := client.Read(client_buf[:4])
 	if err != nil {
-		log.Fatalln(err, n)
+		log.Println(err)
+		return
 	}
 
 	rows := int(binary.LittleEndian.Uint32(client_buf[:n]))
@@ -52,7 +55,8 @@ func clientHandler(client net.Conn) {
 
 	n, err = client.Read(client_buf[:4])
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
+		return
 	}
 
 	cols := int(binary.LittleEndian.Uint32(client_buf[:n]))
@@ -95,7 +99,7 @@ PACKET_LOOP:
 
 			}
 		default:
-			log.Printf("Receive data failed:%s", err)
+			log.Printf("Failed to receive the packet:%s", err)
 			return
 		}
 	}
@@ -116,16 +120,15 @@ PACKET_LOOP:
 }
 
 func main() {
-	fmt.Printf("Listening on port %s...", PROXY_SERVER_PORT)
-	server, err := net.Listen(PROXY_SERVER_TYPE, PROXY_SERVER_HOST+":"+PROXY_SERVER_PORT)
+	fmt.Printf("Listening on port %s...\n", PROXY_SERVER_PORT)
+	proxy_server, err := net.Listen(PROXY_SERVER_TYPE, PROXY_SERVER_HOST+":"+PROXY_SERVER_PORT)
 	if err != nil {
-		fmt.Printf("Error listening on port: %s\n%s", PROXY_SERVER_PORT, err.Error())
-		os.Exit(1)
+		log.Fatalf("Error listening on port: %s\n%s", PROXY_SERVER_PORT, err.Error())
 	}
-	defer server.Close()
+	defer proxy_server.Close()
 
 	for {
-		conn, err := server.Accept()
+		conn, err := proxy_server.Accept()
 		if err != nil {
 			log.Println(err)
 			continue
