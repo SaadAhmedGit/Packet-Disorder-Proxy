@@ -95,7 +95,7 @@ PACKET_LOOP:
 
 			}
 		default:
-			log.Fatalf("Receive data failed:%s", err)
+			log.Printf("Receive data failed:%s", err)
 			return
 		}
 	}
@@ -110,7 +110,7 @@ PACKET_LOOP:
 	//Forward server response back to the client
 	n, err = server.Read(server_buf)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
 	}
 	client.Write(server_buf)
 }
@@ -127,7 +127,7 @@ func main() {
 	for {
 		conn, err := server.Accept()
 		if err != nil {
-			log.Fatalln(err)
+			log.Println(err)
 			continue
 		}
 		go clientHandler(conn)
