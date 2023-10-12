@@ -8,7 +8,6 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"packet-shuffler/packetHeap"
 )
 
 const (
@@ -65,7 +64,7 @@ func clientHandler(client net.Conn) {
 	log.Printf("Image size: %d x %d\n", cols, rows)
 
 	// Create a min heap to shuffle packets
-	h := &packetHeap.PacketHeap{}
+	h := &PacketHeap{}
 	heap.Init(h)
 
 PACKET_LOOP:
@@ -89,11 +88,11 @@ PACKET_LOOP:
 			log.Printf("Received packet %d\n from %s\n", packet_id, client.RemoteAddr())
 
 			// Push packet to the heap with a random priority
-			heap.Push(h, packetHeap.Packet{Priority: rand.Int(), Content: data})
+			heap.Push(h, Packet{Priority: rand.Int(), Content: data})
 
 			// Send packet with the lowest priority to the server after every four packets received
 			if h.Len() > 0 && (packet%4 == 0) {
-				packet := heap.Pop(h).(packetHeap.Packet)
+				packet := heap.Pop(h).(Packet)
 				server.Write(packet.Content)
 				log.Printf("Forwarded %d bytes to server from %s\n", len(packet.Content), client.RemoteAddr())
 
@@ -106,7 +105,7 @@ PACKET_LOOP:
 
 	//Empty the remaining packets
 	for h.Len() > 0 {
-		packet := heap.Pop(h).(packetHeap.Packet)
+		packet := heap.Pop(h).(Packet)
 		server.Write(packet.Content)
 		log.Printf("Forwarded %d bytes to server from %s\n", len(packet.Content), client.RemoteAddr())
 	}
