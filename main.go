@@ -61,13 +61,12 @@ func clientHandler(client net.Conn) {
 	cols := int(binary.LittleEndian.Uint32(client_buf[:n]))
 	server.Write(client_buf[:n])
 
-	log.Printf("Image size: %d x %d\n", cols, rows)
+	log.Printf("Client %v is sending an image of size: %d x %d\n", client.RemoteAddr(), cols, rows)
 
 	// Create a min heap to shuffle packets
 	h := &PacketHeap{}
 	heap.Init(h)
 
-PACKET_LOOP:
 	for packet := 0; packet < rows; packet++ {
 		n, err := client.Read(client_buf)
 
@@ -83,7 +82,8 @@ PACKET_LOOP:
 
 		switch err {
 		case io.EOF:
-			break PACKET_LOOP
+			log.Println("EOF")
+			return
 		case nil:
 			log.Printf("Received packet %d\n from %s\n", packet_id, client.RemoteAddr())
 
@@ -93,7 +93,13 @@ PACKET_LOOP:
 			// Send packet with the lowest priority to the server after every four packets received
 			if h.Len() > 0 && (packet%4 == 0) {
 				packet := heap.Pop(h).(Packet)
-				server.Write(packet.Content)
+
+				n, err = server.Write(packet.Content)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+
 				log.Printf("Forwarded %d bytes to server from %s\n", len(packet.Content), client.RemoteAddr())
 
 			}
@@ -114,8 +120,14 @@ PACKET_LOOP:
 	n, err = server.Read(server_buf)
 	if err != nil {
 		log.Println(err)
+		return
 	}
-	client.Write(server_buf)
+
+	n, err = client.Write(server_buf)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 }
 
 func main() {
