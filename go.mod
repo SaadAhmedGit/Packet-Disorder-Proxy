@@ -1,3 +1,3 @@
-module packet-shuffler
+module packet-disorder-proxy
 
 go 1.21.1
